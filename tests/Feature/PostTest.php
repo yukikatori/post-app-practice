@@ -101,6 +101,54 @@ class PostTest extends TestCase
         $this->assertSame('元の本文', $post->fresh()->content);
     }
 
+    public function test_browser_form_line_endings_count_as_one_character(): void
+    {
+        $user = User::factory()->create();
+        $post = $this->createPost($user);
+        $content = str_repeat('あ', 138)."\r\nい";
+
+        $this->actingAs($user)->put(route('posts.update', $post), [
+            'title' => $post->title,
+            'category_id' => $post->category_id,
+            'content' => $content,
+        ])->assertRedirect(route('posts.index'))->assertSessionHasNoErrors();
+
+        $this->assertSame(str_repeat('あ', 138)."\nい", $post->fresh()->content);
+    }
+
+    public function test_edit_screen_shows_remaining_count_for_existing_content(): void
+    {
+        $user = User::factory()->create();
+        $post = $this->createPost($user);
+        $post->update(['content' => str_repeat('あ', 139).'😀']);
+
+        $this->actingAs($user)->get(route('posts.edit', $post))
+            ->assertOk()
+            ->assertSee('aria-describedby="content-count"', false)
+            ->assertSee('残り0字');
+    }
+
+    public function test_edit_screen_shows_retained_content_error_and_over_limit_count(): void
+    {
+        $user = User::factory()->create();
+        $post = $this->createPost($user);
+        $content = str_repeat('あ', 140).'😀';
+
+        $this->actingAs($user)->from(route('posts.edit', $post))
+            ->put(route('posts.update', $post), [
+                'title' => $post->title,
+                'category_id' => $post->category_id,
+                'content' => $content,
+            ])->assertRedirect(route('posts.edit', $post));
+
+        $this->get(route('posts.edit', $post))
+            ->assertOk()
+            ->assertSee($content)
+            ->assertSee('本文は140文字以内で入力してください。')
+            ->assertSee('1字超過')
+            ->assertSee('content-count is-over-limit');
+    }
+
     public function test_other_user_cannot_edit_or_update_post(): void
     {
         $post = $this->createPost(User::factory()->create());

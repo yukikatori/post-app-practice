@@ -28,6 +28,8 @@
         .btn-secondary:hover { background: #F7F8F9; }
         .btn:focus-visible { outline: 2px solid #E8792B; outline-offset: 2px; }
         .error { color: #D6402C; font-size: 0.83rem; margin-top: 0.3rem; }
+        .content-count { color: #5B6570; font-size: 0.83rem; margin-top: 0.3rem; text-align: right; }
+        .content-count.is-over-limit { color: #D6402C; }
     </style>
 </head>
 <body>
@@ -66,7 +68,11 @@
 
                 <div class="form-group">
                     <label for="content">本文</label>
-                    <textarea id="content" name="content" required>{{ old('content', $post->content) }}</textarea>
+                    <textarea id="content" name="content" aria-describedby="content-count" required>{{ old('content', $post->content) }}</textarea>
+                    @php
+                        $remaining = 140 - mb_strlen(str_replace(["\r\n", "\r"], "\n", old('content', $post->content)));
+                    @endphp
+                    <p id="content-count" class="content-count {{ $remaining < 0 ? 'is-over-limit' : '' }}" role="status">{{ $remaining < 0 ? abs($remaining).'字超過' : '残り'.$remaining.'字' }}</p>
                     @error('content')
                         <p class="error">{{ $message }}</p>
                     @enderror
@@ -79,5 +85,18 @@
             </form>
         </main>
     </div>
+    <script>
+        const content = document.getElementById('content');
+        const contentCount = document.getElementById('content-count');
+
+        const updateContentCount = () => {
+            const remaining = 140 - Array.from(content.value).length;
+            contentCount.textContent = remaining < 0 ? `${-remaining}字超過` : `残り${remaining}字`;
+            contentCount.classList.toggle('is-over-limit', remaining < 0);
+        };
+
+        content.addEventListener('input', updateContentCount);
+        updateContentCount();
+    </script>
 </body>
 </html>

@@ -28,6 +28,12 @@ class PostController extends Controller
     {
         $this->authorize('update', $post);
 
+        if (is_string($request->input('content'))) {
+            $request->merge([
+                'content' => str_replace(["\r\n", "\r"], "\n", $request->input('content')),
+            ]);
+        }
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'content' => 'required|string|max:140',
