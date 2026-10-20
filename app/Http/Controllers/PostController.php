@@ -30,8 +30,17 @@ class PostController extends Controller
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'content' => 'required|string',
+            'content' => 'required|string|max:140',
             'category_id' => 'required|exists:categories,id',
+        ], [
+            'title.required' => 'タイトルを入力してください。',
+            'title.string' => 'タイトルは文字列で入力してください。',
+            'title.max' => 'タイトルは255文字以内で入力してください。',
+            'content.required' => '本文を入力してください。',
+            'content.string' => '本文は文字列で入力してください。',
+            'content.max' => '本文は140文字以内で入力してください。',
+            'category_id.required' => 'トピックを選択してください。',
+            'category_id.exists' => '選択されたトピックは無効です。',
         ]);
 
         $post->update($validated);
